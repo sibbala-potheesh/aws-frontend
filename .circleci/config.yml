@@ -31,7 +31,7 @@ jobs:
 
       - run:
           name: Copy built files to server
-          command: scp -r dist/frontend/browser/* ubuntu@16.16.215.13:/var/www/angular-app/
+          command: scp -r dist/frontend/browser/* ubuntu@16.16.215.13:/var/www/html/
 
       - run:
           name: Reload Nginx

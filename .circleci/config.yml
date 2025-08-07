@@ -23,19 +23,19 @@ jobs:
 
       - add_ssh_keys:
           fingerprints:
-            - "your:ssh:key:fingerprint" # 🔁 Replace this
+            - "SHA256:cwwGQm28mWqZUYxHn9/1G4bmgd65jHOuRUQtjuuD7dk"
 
       - run:
-          name: Clean remote directory
-          command: ssh -o StrictHostKeyChecking=no ubuntu@your-server-ip "rm -rf /var/www/angular-app/*"
+          name: Clean server directory
+          command: ssh -o StrictHostKeyChecking=no ubuntu@16.16.215.13 "rm -rf /var/www/angular-app/*"
 
       - run:
           name: Copy built files to server
-          command: scp -r dist/your-project-name/* ubuntu@your-server-ip:/var/www/angular-app/
+          command: scp -r dist/frontend/browser/* ubuntu@16.16.215.13:/var/www/angular-app/
 
       - run:
           name: Reload Nginx
-          command: ssh -o StrictHostKeyChecking=no ubuntu@your-server-ip "sudo systemctl reload nginx"
+          command: ssh -o StrictHostKeyChecking=no ubuntu@16.16.215.13 "sudo systemctl reload nginx"
 
 workflows:
   build-and-deploy-workflow:

@@ -26,15 +26,15 @@ jobs:
             - "SHA256:cwwGQm28mWqZUYxHn9/1G4bmgd65jHOuRUQtjuuD7dk"
 
       - run:
-          name: Upload built files to EC2 (user directory)
-          command: scp -r dist/frontend/browser/* ubuntu@16.16.215.13:~/frontend-dist/
+          name: Upload built files to EC2
+          command: scp -o StrictHostKeyChecking=no -r dist/frontend/browser/* ubuntu@16.16.215.13:~/frontend-dist/
 
       - run:
-          name: Move files to Nginx directory with sudo
+          name: Deploy to NGINX directory
           command: ssh -o StrictHostKeyChecking=no ubuntu@16.16.215.13 "sudo cp -r ~/frontend-dist/* /var/www/html/"
 
       - run:
-          name: Reload Nginx
+          name: Reload NGINX
           command: ssh -o StrictHostKeyChecking=no ubuntu@16.16.215.13 "sudo systemctl reload nginx"
 
 workflows:

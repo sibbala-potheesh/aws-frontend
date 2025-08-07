@@ -1,0 +1,46 @@
+name: Build and Deploy Angular App
+
+on:
+  push:
+    branches: [main] # Trigger on push to main branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.19.0"
+
+      - name: Install Angular CLI
+        run: sudo npm install -g @angular/cli
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Angular project
+        run: ng build --configuration=production
+
+      - name: Upload built files to EC2
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "dist/frontend/browser/*"
+          target: "~/frontend-dist"
+
+      - name: Deploy to NGINX directory
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            sudo cp -r ~/frontend-dist/* /var/www/html/
+            sudo systemctl reload nginx

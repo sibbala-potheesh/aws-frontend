@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build-and-deploy:
     docker:
-      - image: cimg/node:20.11.1
+      - image: cimg/node:20.19.0
     working_directory: ~/project
 
     steps:

@@ -1,48 +1,37 @@
-name: Build and Deploy Angular App
+name: Deploy Angular App to EC2
 
 on:
   push:
-    branches: [main] # Trigger on push to main branch
+    branches:
+      - main # or your deployment branch
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          node-version: "20.19.0"
-
-      - name: Install Angular CLI
-        run: sudo npm install -g @angular/cli
+          node-version: "18"
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Build Angular project
-        run: ng build --configuration=production
+      - name: Build Angular app
+        run: npm run build # Make sure this maps to `ng build` in your package.json
 
-      - name: Upload built files to EC2
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          source: "dist/frontend/**/*"
-          target: "/home/ubuntu/frontend-dist"
+      - name: Write PEM file
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
 
-      - name: Deploy to NGINX directory
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
+      - name: Deploy to EC2 via SSH
+        run: |
+          ssh -i key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
             sudo rm -rf /var/www/html/*
             sudo cp -r /home/ubuntu/frontend-dist/frontend/browser/* /var/www/html/
-            sudo chown -R www-data:www-data /var/www/html/
-            sudo systemctl reload nginx
+          EOF

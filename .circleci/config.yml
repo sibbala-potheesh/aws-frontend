@@ -26,12 +26,12 @@ jobs:
             - "SHA256:cwwGQm28mWqZUYxHn9/1G4bmgd65jHOuRUQtjuuD7dk"
 
       - run:
-          name: Clean server directory
-          command: ssh -o StrictHostKeyChecking=no ubuntu@16.16.215.13 "rm -rf /var/www/angular-app/*"
+          name: Upload built files to EC2 (user directory)
+          command: scp -r dist/frontend/browser/* ubuntu@16.16.215.13:~/frontend-dist/
 
       - run:
-          name: Copy built files to server
-          command: scp -r dist/frontend/browser/* ubuntu@16.16.215.13:/var/www/html/
+          name: Move files to Nginx directory with sudo
+          command: ssh -o StrictHostKeyChecking=no ubuntu@16.16.215.13 "sudo cp -r ~/frontend-dist/* /var/www/html/"
 
       - run:
           name: Reload Nginx

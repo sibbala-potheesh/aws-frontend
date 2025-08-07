@@ -3,7 +3,7 @@ name: Deploy Frontend to EC2
 on:
   push:
     branches:
-      - main # or your deploy branch
+      - main
 
 jobs:
   deploy:
@@ -28,7 +28,7 @@ jobs:
         run: |
           echo "Building Angular app..."
           npm run build
-          echo "Angular build completed."
+          echo "✅ Angular build completed."
 
       - name: Create SSH key
         run: |
@@ -39,21 +39,23 @@ jobs:
       - name: Copy build files to EC2
         run: |
           echo "Copying build files to EC2 instance at ${{ secrets.EC2_HOST }}..."
-          scp -o StrictHostKeyChecking=no -i ec2_key.pem -r dist/frontend/browser/* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/deploy-temp
-          echo "Files copied successfully."
+          scp -o StrictHostKeyChecking=no -i ec2_key.pem -r dist/frontend/browser/* ubuntu@${{ secrets.EC2_HOST }}:/home/ubuntu/deploy-temp
+          echo "✅ Files copied successfully."
 
       - name: Move files to web root and restart server
         run: |
           echo "Deploying to /var/www/html and restarting server..."
-          ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ec2_key.pem ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+            sudo rm -rf /var/www/html/*
             sudo cp -r /home/ubuntu/deploy-temp/* /var/www/html/
             sudo rm -rf /home/ubuntu/deploy-temp
-            echo "Files copied to /var/www/html."
+            echo "✅ Files deployed to /var/www/html."
             sudo systemctl restart nginx
-            echo "NGINX restarted."
+            echo "✅ NGINX restarted."
           EOF
 
       - name: Clean up SSH key
         run: |
           echo "Cleaning up private key..."
           rm ec2_key.pem
+          echo "✅ SSH key removed."

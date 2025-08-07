@@ -33,7 +33,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "dist/frontend/browser/*"
-          target: "~/frontend-dist"
+          target: "/home/ubuntu/frontend-dist" # 👈 Use full path
 
       - name: Deploy to NGINX directory
         uses: appleboy/ssh-action@v1.0.0
@@ -42,5 +42,5 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            sudo cp -r ~/frontend-dist/* /var/www/html/
+            sudo cp -r /home/ubuntu/frontend-dist/* /var/www/html/
             sudo systemctl reload nginx

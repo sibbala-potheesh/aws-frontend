@@ -3,7 +3,7 @@ version: 2.1
 jobs:
   build-and-deploy:
     docker:
-      - image: cimg/node:20.11.1 # Adjust Node version if needed
+      - image: cimg/node:20.11.1
     working_directory: ~/project
 
     steps:
@@ -23,29 +23,19 @@ jobs:
 
       - add_ssh_keys:
           fingerprints:
-            - "your:ssh:key:fingerprint" # Replace with your SSH key fingerprint
+            - "your:ssh:key:fingerprint" # 🔁 Replace this
 
       - run:
-          name: Deploy to EC2 via SSH
-          command: |
-            ssh -o StrictHostKeyChecking=no ubuntu@your-server-ip << 'EOF'
-              rm -rf ~/frontend-dist/*
-              mkdir -p ~/frontend-dist
-              exit
-              
-            EOF
+          name: Clean remote directory
+          command: ssh -o StrictHostKeyChecking=no ubuntu@your-server-ip "rm -rf /var/www/angular-app/*"
 
       - run:
           name: Copy built files to server
-          command: |
-            scp -r dist/your-project-name/* ubuntu@your-server-ip:~/frontend-dist/
+          command: scp -r dist/your-project-name/* ubuntu@your-server-ip:/var/www/angular-app/
 
       - run:
-          name: Restart Apache or Nginx (optional)
-          command: |
-            ssh -o StrictHostKeyChecking=no ubuntu@your-server-ip << 'EOF'
-              sudo systemctl restart apache2  # or nginx
-            EOF
+          name: Reload Nginx
+          command: ssh -o StrictHostKeyChecking=no ubuntu@your-server-ip "sudo systemctl reload nginx"
 
 workflows:
   build-and-deploy-workflow:

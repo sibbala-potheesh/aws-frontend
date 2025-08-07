@@ -3,35 +3,62 @@ name: Deploy Angular App to EC2
 on:
   push:
     branches:
-      - main # or your deployment branch
+      - main
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
+    env:
+      EC2_HOST: ${{ secrets.EC2_HOST }}
+      EC2_USER: ubuntu
+      EC2_KEY: ${{ secrets.EC2_KEY }}
+
     steps:
-      - name: Checkout code
+      - name: ⬇️ Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
+      - name: 🛠️ Install Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "18"
+          node-version: "20"
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build Angular app
-        run: npm run build # Make sure this maps to `ng build` in your package.json
-
-      - name: Write PEM file
+      - name: 📦 Install dependencies
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          echo "Installing dependencies..."
+          npm ci
+
+      - name: 🏗️ Build Angular App
+        run: |
+          echo "Building Angular app..."
+          npm run build
+          echo "✅ Build successful!"
+
+      - name: 🔐 Write SSH Key
+        run: |
+          echo "Writing SSH private key..."
+          echo "${EC2_KEY}" > key.pem
           chmod 600 key.pem
+          echo "✅ SSH key written."
 
-      - name: Deploy to EC2 via SSH
+      - name: 🚀 Deploy to EC2
         run: |
-          ssh -i key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+          echo "Starting SSH deployment to $EC2_HOST..."
+          ssh -i key.pem -o StrictHostKeyChecking=no ubuntu@$EC2_HOST << 'EOF'
+            set -e
+            echo "✅ Connected to EC2 instance."
+
+            echo "🧹 Cleaning /var/www/html/..."
             sudo rm -rf /var/www/html/*
+
+            echo "📁 Copying new build files to /var/www/html/..."
             sudo cp -r /home/ubuntu/frontend-dist/frontend/browser/* /var/www/html/
+
+            echo "✅ Deployment complete!"
           EOF
+
+      - name: 🧹 Clean up SSH key
+        run: |
+          echo "Removing SSH key from runner..."
+          rm -f key.pem
+          echo "✅ Cleanup done."

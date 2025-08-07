@@ -1,64 +1,59 @@
-name: Deploy Angular App to EC2
+name: Deploy Frontend to EC2
 
 on:
   push:
     branches:
-      - main
+      - main # or your deploy branch
 
 jobs:
-  build-and-deploy:
+  deploy:
+    name: Deploy Angular Frontend
     runs-on: ubuntu-latest
 
-    env:
-      EC2_HOST: ${{ secrets.EC2_HOST }}
-      EC2_USER: ubuntu
-      EC2_KEY: ${{ secrets.EC2_KEY }}
-
     steps:
-      - name: ⬇️ Checkout code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: 🛠️ Install Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: "20"
+          node-version: 18
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         run: |
           echo "Installing dependencies..."
           npm ci
 
-      - name: 🏗️ Build Angular App
+      - name: Build Angular app
         run: |
           echo "Building Angular app..."
           npm run build
-          echo "✅ Build successful!"
+          echo "Angular build completed."
 
-      - name: 🔐 Write SSH Key
+      - name: Create SSH key
         run: |
-          echo "Writing SSH private key..."
-          echo "${EC2_KEY}" > key.pem
-          chmod 600 key.pem
-          echo "✅ SSH key written."
+          echo "Creating SSH key from secret..."
+          echo "${{ secrets.EC2_SSH_KEY }}" > ec2_key.pem
+          chmod 600 ec2_key.pem
 
-      - name: 🚀 Deploy to EC2
+      - name: Copy build files to EC2
         run: |
-          echo "Starting SSH deployment to $EC2_HOST..."
-          ssh -i key.pem -o StrictHostKeyChecking=no ubuntu@$EC2_HOST << 'EOF'
-            set -e
-            echo "✅ Connected to EC2 instance."
+          echo "Copying build files to EC2 instance at ${{ secrets.EC2_HOST }}..."
+          scp -o StrictHostKeyChecking=no -i ec2_key.pem -r dist/frontend/browser/* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/ubuntu/deploy-temp
+          echo "Files copied successfully."
 
-            echo "🧹 Cleaning /var/www/html/..."
-            sudo rm -rf /var/www/html/*
-
-            echo "📁 Copying new build files to /var/www/html/..."
-            sudo cp -r /home/ubuntu/frontend-dist/frontend/browser/* /var/www/html/
-
-            echo "✅ Deployment complete!"
+      - name: Move files to web root and restart server
+        run: |
+          echo "Deploying to /var/www/html and restarting server..."
+          ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            sudo cp -r /home/ubuntu/deploy-temp/* /var/www/html/
+            sudo rm -rf /home/ubuntu/deploy-temp
+            echo "Files copied to /var/www/html."
+            sudo systemctl restart nginx
+            echo "NGINX restarted."
           EOF
 
-      - name: 🧹 Clean up SSH key
+      - name: Clean up SSH key
         run: |
-          echo "Removing SSH key from runner..."
-          rm -f key.pem
-          echo "✅ Cleanup done."
+          echo "Cleaning up private key..."
+          rm ec2_key.pem
